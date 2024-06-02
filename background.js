@@ -26,67 +26,70 @@ function addMinutesToDate(date, minutes) {
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
-      id: 'addToTodoist',
-      title: 'Add YouTube video to Todoist',
-      contexts: ['page']
+        id: 'addToTodoist',
+        title: 'Add YouTube video to Todoist',
+        contexts: ['page']
     });
-  });
-  
-  chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId === 'addToTodoist') {
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: tab.id },
-          function: getVideoDetails
-        },
-        (results) => {
-          const videoDetails = results[0].result;
-          chrome.storage.sync.get('todoistApiToken', (data) => {
-            if (data.todoistApiToken) {
-              addToTodoist(videoDetails, data.todoistApiToken);
-            } else {
-              console.error('Todoist API token not set.');
-            }
-          });
-        }
-      );
-    }
-  });
-  
-  function addToTodoist(videoDetails, apiToken) {
+});
 
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'addToTodoist') {
+        chrome.scripting.executeScript(
+            {
+                target: { tabId: tab.id },
+                function: getVideoDetails
+            },
+            (results) => {
+                const videoDetails = results[0].result;
+                chrome.storage.sync.get('todoistApiToken', (data) => {
+                    if (data.todoistApiToken) {
+                        addToTodoist(videoDetails, data.todoistApiToken);
+                    } else {
+                        console.error('Todoist API token not set.');
+                    }
+                });
+            }
+        );
+    }
+});
+
+function addToTodoist(videoDetails, apiToken) {
 
     let minutes = convertSecondsToMinutes(videoDetails.duration);
     let due = addMinutesToDate(new Date(), minutes);
 
-
     fetch('https://api.todoist.com/rest/v2/tasks', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        content: videoDetails.title,
-        due_datetime: due.toISOString(),
-        duration: minutes,
-        duration_unit: "minute"
-      })
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            content: videoDetails.title,
+            due_datetime: due.toISOString(),
+            duration: minutes,
+            duration_unit: "minute",
+            description: videoDetails.description
+        })
     }).then(response => response.json())
-      .then(data => console.log('Task added:', data))
-      .catch(error => console.error('Error:', error));
-  }
-  
-  function getVideoDetails() {
+        .then(data => console.log('Task added:', data))
+        .catch(error => console.error('Error:', error));
+}
+
+function getVideoDetails() {
     const videoTitle = document.querySelector('meta[name="title"]').content;
-    
+    const videoURL = document.querySelector('link[rel="shortlinkUrl"]').href;
+    const videoDesc = document.querySelector('meta[property="og:description"]').content;
+
     const videoLength = document.querySelector('.ytp-time-duration').textContent;
     const duration = videoLength.match(/\d+:\d+/)[0]; // Extract duration
     const durationInSeconds = parseInt(duration.split(':')[0]) * 60 + parseInt(duration.split(':')[1]);
-  
+
+    let description = videoURL + "\n" + videoDesc;
+
     return {
-      title: videoTitle,
-      duration: durationInSeconds
+        title: videoTitle,
+        duration: durationInSeconds,
+        description: description
     };
-  }
-  
+}
