@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "YouTube to Todoist",
+    "version": "1.0",
+    "description": "Add the current YouTube video to Todoist as a task.",
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "storage",
+      "contextMenus",
+      "identity",
+      "identity.email"
+    ],
+    "host_permissions": [
+      "https://api.todoist.com/"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "options_page": "options.html"
+  }
+  
